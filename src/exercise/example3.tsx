@@ -1,0 +1,211 @@
+/**
+ * ============================================================================
+ * Exercise 3 - Deployment Queue
+ * ============================================================================
+ *
+ * Scenario
+ * --------
+ *
+ * Congratulations!
+ *
+ * The DeploymentCard component and search functionality have been completed.
+ *
+ * Your next task is to build the Deployment Queue page by integrating the
+ * previous exercises.
+ *
+ * ============================================================================
+ *
+ * Requirements
+ *
+ * Build a Deployment Queue page using the supplied mock API response.
+ *
+ * The page should display all deployments using the DeploymentCard component
+ * created in Exercise 1.
+ *
+ * Use the custom hook created in Exercise 2 for searching deployments.
+ *
+ * ============================================================================
+ *
+ * Functional Requirements
+ *
+ * 1. Fetch deployments using React Query.
+ *
+ * 2. Display all deployments.
+ *
+ * 3. Search deployments by Application Name.
+ *
+ * 4. Display the following summary:
+ *
+ *      Total Deployments
+ *
+ * 5. Add a Status filter.
+ *
+ *      All
+ *      Pending
+ *      In Progress
+ *      Completed
+ *      Failed
+ *
+ * 6. Display an Empty State when no deployments match the search/filter.
+ *
+ * 7. Display a Loading State while data is loading.
+ *
+ * 8. Display an Error State when the request fails.
+ *
+ * ============================================================================
+ *
+ * Technical Expectations
+ *
+ * • React Query
+ *
+ * • TypeScript
+ *
+ * • Reusable Components
+ *
+ * • Clean Folder Structure
+ *
+ * • Avoid duplicated logic
+ *
+ * • Use the custom hook from Exercise 2
+ *
+ * ============================================================================
+ *
+ * Bonus (Optional)
+ *
+ * If time permits, implement one or more of the following:
+ *
+ * • Sort deployments by Scheduled Date
+ *
+ * • Display deployment counts grouped by Status
+ *
+ * • Display the number of filtered deployments
+ *
+ * • Highlight the matched search text
+ *
+ * ============================================================================
+ *
+ * Notes
+ *
+ * • You may create additional components if needed.
+ *
+ * • You may extend the custom hook created in Exercise 2.
+ *
+ * • Focus on clean architecture over visual appearance.
+ *
+ * ============================================================================
+ *
+ * Evaluation
+ *
+ * ✓ React
+ * ✓ React Query
+ * ✓ TypeScript
+ * ✓ Component Composition
+ * ✓ Hooks
+ * ✓ State Management
+ * ✓ Code Organization
+ * ✓ Reusability
+ * ✓ Tailwind CSS
+ *
+ * ============================================================================
+ */
+
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { getDeployments } from "@/api/diploymentApi";
+import { Button } from "@/components/ui/button";
+import type { Deployment } from "./example1";
+import { useDeploymentFilters } from "./example2";
+
+type StatusFilter = "All" | Deployment["status"] | "Failed";
+
+const statusFilters: StatusFilter[] = [
+  "All",
+  "Pending",
+  "In Progress",
+  "Completed",
+  "Failed",
+];
+
+import DeploymentCard from "./example1";
+
+export default function Example3() {
+  const [status, setStatus] = useState<StatusFilter>("All");
+  const { data: deployments = [], isLoading, isError } = useQuery({
+    queryKey: ["deployments"],
+    queryFn: getDeployments,
+  });
+  const { search, setSearch, filteredDeployments } =
+    useDeploymentFilters(deployments);
+  const visibleDeployments = filteredDeployments.filter(
+    (deployment) => status === "All" || deployment.status === status
+  );
+
+  if (isLoading) {
+    return <p className="p-6 text-muted-foreground">Loading deployments...</p>;
+  }
+
+  if (isError) {
+    return (
+      <p className="p-6 text-destructive">
+        Unable to load deployments. Please try again.
+      </p>
+    );
+  }
+
+  return (
+    <main className="container mx-auto space-y-6 p-6">
+      <header className="space-y-2">
+        <p className="text-sm font-medium text-muted-foreground">
+          Release Engineering
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight">Deployment Queue</h1>
+        <p className="text-muted-foreground">
+          {deployments.length} total deployment{deployments.length === 1 ? "" : "s"}
+        </p>
+      </header>
+
+      <section className="space-y-4" aria-label="Deployment filters">
+        <label className="block max-w-md space-y-2 text-sm font-medium" htmlFor="deployment-search">
+          Search by application
+          <input
+            id="deployment-search"
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search applications..."
+            className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-xs outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+          />
+        </label>
+
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by status">
+          {statusFilters.map((filter) => (
+            <Button
+              key={filter}
+              type="button"
+              size="sm"
+              variant={status === filter ? "default" : "outline"}
+              onClick={() => setStatus(filter)}
+            >
+              {filter}
+            </Button>
+          ))}
+        </div>
+      </section>
+
+      {visibleDeployments.length === 0 ? (
+        <p className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+          No deployments match your search and status filters.
+        </p>
+      ) : (
+        <section
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+          aria-label="Deployments"
+        >
+          {visibleDeployments.map((deployment) => (
+            <DeploymentCard key={deployment.id} deployment={deployment} />
+          ))}
+        </section>
+      )}
+    </main>
+  );
+}
